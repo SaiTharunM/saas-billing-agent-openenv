@@ -1,0 +1,58 @@
+version: "2.1.0"
+name: "saas_billing_support"
+description: "A high-fidelity simulator for SaaS billing and subscription support tasks."
+domain: "SaaS Billing & Subscription"
+
+observation_space:
+  type: "object"
+  properties:
+    ticket_id:
+      type: "string"
+    customer_info:
+      type: "object"
+      properties:
+        name: { type: "string" }
+        tier: { type: "string", enum: ["free", "pro", "enterprise"] }
+    last_message:
+      type: "string"
+    chat_history:
+      type: "array"
+      items:
+        type: "object"
+        properties:
+          role: { type: "string", enum: ["customer", "agent", "system"] }
+          content: { type: "string" }
+    available_tools:
+      type: "array"
+      items:
+        type: "string"
+        enum: ["reply", "lookup_billing", "trigger_refund", "update_subscription", "close_ticket", "update_customer_record", "offer_retention_credit", "offer_loyalty_discount"]
+    current_status:
+      type: "string"
+      enum: ["open", "pending", "resolved", "closed"]
+
+action_space:
+  type: "object"
+  properties:
+    action_type:
+      type: "string"
+      enum: ["reply", "lookup_billing", "trigger_refund", "update_subscription", "close_ticket", "update_customer_record", "offer_retention_credit", "offer_loyalty_discount"]
+    payload:
+      type: "object"
+
+reward_range: [-10.0, 10.0]
+is_terminal: true
+
+tasks:
+  - id: "task_1"
+    name: "Easy: Email Update"
+    description: "Update the customer's email address after verification."
+    difficulty: "easy"
+  - id: "task_2"
+    name: "Medium: Pro-rated Refund"
+    description: "Calculate and issue a pro-rated refund for a mid-cycle cancellation."
+    difficulty: "medium"
+  - id: "task_3"
+    name: "Hard: Retention & Escalation"
+    description: "Retain a high-value Enterprise customer using a loyalty discount."
+    difficulty: "hard"

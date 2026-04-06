@@ -1,0 +1,5 @@
+{
+  "name": "SaaS Billing Support OpenEnv",
+  "description": "An OpenEnv environment for SaaS billing and subscription support automation.",
+  "requestFramePermissions": []
+}
