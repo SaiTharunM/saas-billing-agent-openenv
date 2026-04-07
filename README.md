@@ -1,3 +1,48 @@
+---
+title: SaaS Billing Support Agent
+emoji: 💰
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_file: app.py
+pinned: false
+---
+
+# SaaS Billing Support Agent
+
+This is an AI-powered SaaS billing support system built using FastAPI and deployed on HuggingFace Spaces.
+
+## Features
+- Handle billing queries
+- AI-based responses
+- FastAPI backend
+- OpenEnv integration
+
+## How to Run
+```bash
+uvicorn app:app --host 0.0.0.0 --port 7860
+
+
+---
+
+# ⚠️ VERY IMPORTANT RULES
+
+✔ YAML must be at **TOP of file**  
+✔ No space before `---`  
+✔ No Python code  
+✔ No extra text above YAML  
+
+---
+
+# ✅ Step 2: Save → Commit → Push
+
+```bash
+git add README.md
+git commit -m "Fixed HF config permanently"
+git push origin main --force
+
+
+
 # 🚀 SaaS Billing Support OpenEnv
 
 [![OpenEnv Certified](https://img.shields.io/badge/OpenEnv-Certified-blueviolet?style=for-the-badge&logo=openai)](https://openenv.org)
