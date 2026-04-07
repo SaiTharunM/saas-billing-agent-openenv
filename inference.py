@@ -97,22 +97,38 @@ def run_inference():
                 print(f"[ERROR] Step failed: {e}")
                 break
 
-        # ✅ CORRECTLY INDENTED GRADING (INSIDE LOOP)
+        # ✅ ULTRA SAFE GRADING (FINAL FIX)
         try:
             if task_id == "task_1":
-                score = Grader.grade_task_1(env)
+                raw_score = Grader.grade_task_1(env)
             elif task_id == "task_2":
-                score = Grader.grade_task_2(env)
+                raw_score = Grader.grade_task_2(env)
             elif task_id == "task_3":
-                score = Grader.grade_task_3(env)
+                raw_score = Grader.grade_task_3(env)
             else:
+                raw_score = 0.5
+
+            # ✅ Convert safely to float
+            try:
+                score = float(raw_score)
+            except:
                 score = 0.5
 
-            # ✅ FORCE SCORE INTO (0,1)
-            if score <= 0:
-                score = 0.1
-            elif score >= 1:
-                score = 0.9
+            # ✅ Handle invalid values
+            if score is None:
+                score = 0.5
+
+            # ✅ STRICT clamp (never 0 or 1)
+            if score <= 0.0:
+                score = 0.01
+            elif score >= 1.0:
+                score = 0.99
+
+            # ✅ Extra safety
+            if score == 0.0:
+                score = 0.01
+            if score == 1.0:
+                score = 0.99
 
         except Exception as e:
             print(f"[ERROR] Grading failed: {e}")
