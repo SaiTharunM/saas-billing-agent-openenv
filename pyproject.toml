@@ -1,0 +1,15 @@
+[project]
+name = "saas-billing-support"
+version = "2.1.0"
+description = "AI-powered SaaS billing support agent"
+authors = [
+    { name="Sai Tharun", email="saitharun6473@gmail.com" }
+]
+
+dependencies = [
+    "fastapi",
+    "uvicorn",
+]
+
+[tool.openenv]
+entry_point = "app:app"
