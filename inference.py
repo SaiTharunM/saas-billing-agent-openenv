@@ -11,10 +11,10 @@ from tasks import TASKS, TASK_IDS
 
 API_BASE_URL = os.getenv("API_BASE_URL")
 API_KEY = os.getenv("API_KEY")
-MODEL_NAME = os.getenv("MODEL_NAME")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
 client: Optional[OpenAI] = None
-if API_KEY:
+if API_BASE_URL and API_KEY:
     client = OpenAI(
         base_url=API_BASE_URL,
         api_key=API_KEY,
@@ -119,12 +119,34 @@ def get_llm_action(observation_json: str) -> Action:
         return build_fallback_action(observation_json)
 
 
+def warmup_proxy_call() -> None:
+    if client is None:
+        return
+
+    try:
+        client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": "Return terse JSON only."},
+                {"role": "user", "content": '{"status":"ping"}'},
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=16,
+            timeout=10,
+        )
+        print("[INFO] LiteLLM proxy warmup call succeeded.")
+    except Exception as exc:
+        print(f"[WARNING] LiteLLM proxy warmup failed: {exc}")
+
+
 def run_inference():
     try:
         env = SaaSSupportEnv()
     except Exception as exc:
         print(f"[ERROR] Failed to initialize environment: {exc}")
         return {}
+
+    warmup_proxy_call()
 
     scores = {}
 
@@ -171,7 +193,7 @@ def run_inference():
 
 if __name__ == "__main__":
     try:
-        if not all([API_BASE_URL, API_KEY, MODEL_NAME]):
+        if not all([API_BASE_URL, API_KEY]):
             print("[WARNING] Missing environment variables; using deterministic fallback actions.")
 
         run_inference()

@@ -1,6 +1,9 @@
 import os
 import time
+from contextlib import asynccontextmanager
+
 import uvicorn
+from openai import OpenAI
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +13,39 @@ from models import Action
 from tasks import TASKS, list_tasks
 from grader import Grader
 
+API_BASE_URL = os.getenv("API_BASE_URL")
+API_KEY = os.getenv("API_KEY")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
-app = FastAPI(title="SaaS Billing Support OpenEnv API")
+
+def ping_llm_proxy() -> None:
+    if not API_BASE_URL or not API_KEY:
+        return
+
+    try:
+        client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+        client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": "Return terse JSON only."},
+                {"role": "user", "content": '{"status":"startup"}'},
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=16,
+            timeout=10,
+        )
+        print("LiteLLM proxy startup ping succeeded.")
+    except Exception as exc:
+        print(f"LiteLLM proxy startup ping failed: {exc}")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    ping_llm_proxy()
+    yield
+
+
+app = FastAPI(title="SaaS Billing Support OpenEnv API", lifespan=lifespan)
 
 # Add CORS middleware
 app.add_middleware(
