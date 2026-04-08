@@ -1,176 +1,100 @@
 ---
 title: SaaS Billing Support Agent
-emoji: 💰
+emoji: "moneybag"
 colorFrom: blue
-colorTo: purple
+colorTo: indigo
 sdk: docker
 app_file: app.py
 pinned: false
 ---
 
-# SaaS Billing Support Agent
+# SaaS Billing Support OpenEnv
 
-This is an AI-powered SaaS billing support system built using FastAPI and deployed on HuggingFace Spaces.
+A stateful OpenEnv environment for SaaS billing and subscription support workflows. The environment exposes typed observations, deterministic task graders, bounded rewards, and a reproducible inference runner.
 
 ## Features
-- Handle billing queries
-- AI-based responses
-- FastAPI backend
-- OpenEnv integration
 
-## How to Run
-```bash
-uvicorn app:app --host 0.0.0.0 --port 7860
+- FastAPI environment with `reset()`, `step()`, `state()`, `/tasks`, and `/grader`
+- Three registered tasks covering easy, medium, and hard billing support flows
+- Deterministic graders with scores strictly inside `(0, 1)`
+- Inference script at the repo root named `inference.py`
+- Docker deployment for Hugging Face Spaces
 
-
----
-
-# ⚠️ VERY IMPORTANT RULES
-
-✔ YAML must be at **TOP of file**  
-✔ No space before `---`  
-✔ No Python code  
-✔ No extra text above YAML  
-
----
-
-# ✅ Step 2: Save → Commit → Push
-
-```bash
-git add README.md
-git commit -m "Fixed HF config permanently"
-git push origin main --force
-
-
-
-# 🚀 SaaS Billing Support OpenEnv
-
-[![OpenEnv Certified](https://img.shields.io/badge/OpenEnv-Certified-blueviolet?style=for-the-badge&logo=openai)](https://openenv.org)
-[![Hugging Face Space](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Space-yellow?style=for-the-badge)](https://huggingface.co/spaces)
-
-> **The ultimate high-fidelity simulator for training AI agents in complex SaaS billing operations, policy reasoning, and pro-rated mathematics.**
-
----
-
-## 🎯 The Mission
-
-In the modern enterprise, billing isn't just about invoices; it's about **policy-governed reasoning**. Agents must navigate pro-rated refund windows, verify customer identities, and balance retention goals against strict financial controls. Most simulators fail to capture the "messy middle"—the stochastic customer who is frustrated, the vague request that requires a database lookup, or the policy that forbids a refund but encourages a loyalty discount.
-
-**SaaS Billing Support OpenEnv** provides a robust, stateful environment where agents are tested on their ability to think like a professional support representative. It moves beyond simple text generation into **verifiable action sequences** that update a simulated production database.
-
----
-
-## 🛠️ Action Space
-
-The agent interacts with the environment using a typed action schema. Every action (except `reply`) requires specific parameters and is validated against the `CompanyPolicy`.
+## Action Space
 
 | Action Type | Payload Fields | Description |
 | :--- | :--- | :--- |
-| `reply` | `message: string` | Send a text response to the customer. |
-| `lookup_billing` | `{}` | Retrieve the customer's full billing history and usage logs. |
-| `trigger_refund` | `invoice_id, amount` | Issue a refund. Validated against the 30-day policy window. |
-| `update_record` | `field, value` | Update customer metadata (e.g., email). Requires verification. |
-| `loyalty_discount` | `{}` | Offer a 15% discount to Enterprise customers for retention. |
+| `reply` | `message` | Send a response to the customer |
+| `lookup_billing` | none | Fetch billing history for the active customer |
+| `trigger_refund` | `invoice_id`, `amount` | Issue a refund for a valid invoice |
+| `update_customer_record` | `field`, `value` | Update customer metadata after verification |
+| `offer_loyalty_discount` | none | Offer a retention discount for enterprise customers |
+| `close_ticket` | none | Resolve the active ticket |
 
----
-
-## 👁️ Observation Space
-
-The environment returns a comprehensive state object after every step, allowing for sophisticated chain-of-thought reasoning.
+## Observation Space
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `ticket_id` | `string` | Unique identifier for the current support session. |
-| `customer_info` | `object` | Metadata including `tier`, `join_date`, and `is_verified`. |
-| `chat_history` | `list` | Full transcript of the conversation so far. |
-| `available_tools`| `list` | List of actions currently permitted by the system. |
+| `ticket_id` | `string` | Active ticket identifier |
+| `customer_info` | `object` | Customer name and tier |
+| `last_message` | `string` | Latest customer-facing message |
+| `chat_history` | `array` | Full transcript for the task |
+| `available_tools` | `array` | Allowed action types |
+| `current_status` | `string` | Ticket status |
 
----
+## Tasks
 
-
-## 📊 Difficulty Matrix & Tasks
-
-We provide three distinct tasks that test different dimensions of agent capability.
-
-| Task ID | Difficulty | Objective | Grading Logic (0.0 - 1.0) |
+| Task ID | Difficulty | Objective | Score Range |
 | :--- | :--- | :--- | :--- |
-| `task_1` | **Easy** | Update customer email. | Correct field update + Verification + Resolution. |
-| `task_2` | **Medium** | Calculate pro-rated refund. | Billing lookup + Correct math + Policy adherence. |
-| `task_3` | **Hard** | Retention vs. Refund. | Identify Enterprise tier + Offer Loyalty + No Refund. |
+| `task_1` | easy | Update a customer email after verification | `(0.01, 0.99)` |
+| `task_2` | medium | Calculate and issue a pro-rated refund | `(0.01, 0.99)` |
+| `task_3` | hard | Retain an enterprise customer with a loyalty offer | `(0.01, 0.99)` |
 
----
+## Reward Design
 
-## 📈 Reward Shaping
+- Exposed rewards are normalized into `(0, 1)` before being returned by the environment
+- Successful end states cap at `0.99`
+- Failed or negative intermediate rewards clamp to `0.01`
+- Partial progress is reflected through intermediate values such as billing lookup and partial grader credit
 
-Our reward function provides dense signals to guide the agent toward optimal behavior:
+## Local Setup
 
-- **Success Bonus:** `+1.0` for perfect task completion.
-- **Information Gain:** `+0.1` for performing a `lookup_billing` (encourages data-driven decisions).
-- **Policy Penalty:** `-0.5` for attempting an illegal refund (e.g., outside 30-day window).
-- **Hallucination Penalty:** `-0.2` for issuing a refund without looking up the invoice first.
-- **Time Penalty:** `-0.01` per step to encourage efficiency.
-
----
-## 📊 Tasks & Evaluation
-
-| Task | Objective | Result |
-|------|----------|--------|
-| task_1 | Email Update + Verification | ✅ 1.0 |
-| task_2 | Pro-rated Refund | ✅ 1.0 |
-| task_3 | Retention Strategy | ✅ 1.0 |
-
----
-
-## 📈 Reward System
-
-- ✅ +1.0 → Perfect completion  
-- ➕ +0.1 → Data lookup  
-- ❌ -0.5 → Policy violation  
-- ❌ -0.2 → Incorrect reasoning  
-- ⏱ -0.01 → Per step penalty  
-
----
-
-## 🏁 Quick Start (Reproducibility)
-
-To reproduce our baseline scores and verify the environment:
-
-### 💻 Running Locally
-
-This project is a **Full-Stack Application**. Do **not** open `index.html` directly with "Live Server". Instead, run the backend server to see the interactive dashboard.
-
-#### Option 1: Python (Recommended)
 ```bash
 pip install -r requirements.txt
 python app.py
 ```
-Visit `http://localhost:7860` in your browser.
 
-#### Option 2: Node.js (Development)
+The app listens on `http://localhost:7860`.
+
+## Baseline and Inference
+
+Run the baseline:
+
 ```bash
-npm install
-npm run dev
+python baseline.py
 ```
-Visit `http://localhost:3000` in your browser.
 
-### 🐳 Docker Deployment
-1. **Clone & Build:**
-   ```bash
-   docker build -t saas-billing-env .
-   docker run -p 7860:7860 saas-billing-env
-   ```
+Run the submission inference script:
 
-2. **Run Baseline:**
-   ```bash
-   # Ensure APP_URL is set to your local or remote endpoint
-   export APP_URL="http://localhost:7860"
-   python baseline.py
-   ```
+```bash
+python inference.py
+```
 
-3. **Verify Scores:**
-   The `baseline.py` script will output a JSON report with scores for all 3 tasks, ensuring the environment is responding deterministically to standard policies.
+The inference script prints structured stdout logs in the required format:
 
----
+- `[START]`
+- `[STEP]`
+- `[END]`
 
-## 📜 License & Compliance
-This environment is compliant with the **OpenEnv v2.1.0** specification. All customer data is synthetic and generated for simulation purposes.
+## Docker
+
+```bash
+docker build -t saas-billing-env .
+docker run -p 7860:7860 saas-billing-env
+```
+
+## Validation Notes
+
+- `openenv.yaml` declares a reward range of `[0.01, 0.99]`
+- All graders return floats strictly inside `(0, 1)`
+- The environment registers all three tasks consistently across config, runtime, and inference
