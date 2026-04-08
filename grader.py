@@ -24,13 +24,21 @@ class Grader:
 
     @staticmethod
     def grade_task_1(env: SaaSSupportEnv) -> float:
-        verified = env.verification_pending or any(
-            "Security: Please verify" in msg.content
-            for msg in env.current_ticket["history"]
+        current_ticket = getattr(env, "current_ticket", None) or {}
+        history = current_ticket.get("history", []) if isinstance(current_ticket, dict) else []
+        customer_email = (
+            getattr(getattr(env, "db", None), "customers", {})
+            .get("cust_001", {})
+            .get("email")
         )
 
-        updated = env.db.customers["cust_001"]["email"] == "alice_new@example.com"
-        resolved = env.current_ticket["status"] == TicketStatus.RESOLVED
+        verified = getattr(env, "verification_pending", False) or any(
+            "Security: Please verify" in getattr(msg, "content", "")
+            for msg in history
+        )
+
+        updated = customer_email == "alice_new@example.com"
+        resolved = current_ticket.get("status") == TicketStatus.RESOLVED
 
         if updated and resolved:
             return Grader.normalize(0.99)   # ❌ NOT 1.0
@@ -40,7 +48,7 @@ class Grader:
 
     @staticmethod
     def grade_task_2(env: SaaSSupportEnv) -> float:
-        history = env.action_history
+        history = getattr(env, "action_history", []) or []
 
         looked_up = any(a.action_type == ActionType.LOOKUP_BILLING for a in history)
 
@@ -74,7 +82,7 @@ class Grader:
 
     @staticmethod
     def grade_task_3(env: SaaSSupportEnv) -> float:
-        history = env.action_history
+        history = getattr(env, "action_history", []) or []
 
         loyalty_offered = any(
             a.action_type == ActionType.OFFER_LOYALTY_DISCOUNT for a in history
