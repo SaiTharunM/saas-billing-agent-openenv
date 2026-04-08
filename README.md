@@ -1,6 +1,6 @@
 ---
 title: SaaS Billing Support Agent
-emoji: "moneybag"
+emoji: "💰"
 colorFrom: blue
 colorTo: indigo
 sdk: docker
