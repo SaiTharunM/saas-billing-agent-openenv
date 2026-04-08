@@ -312,7 +312,7 @@ async def reset(request: Request, task_id: str = None):
     if task_id is None:
         try:
             body = await request.json()
-            task_id = body.get("task_id")
+            task_id = body.get("task_id") or body.get("task") or body.get("id")
         except:
             pass
     
@@ -352,15 +352,24 @@ async def get_tasks():
     return list_tasks()
 
 @app.get("/grader")
-async def get_grader():
+async def get_grader(task_id: str = None):
     """Returns the score for the current task."""
-    if current_task_id is None:
+    global current_task_id
+
+    requested_task_id = task_id or current_task_id
+    if requested_task_id is None:
         raise HTTPException(status_code=400, detail="No active task. Call /reset first.")
-    
-    score = Grader.grade(current_task_id, env)
+
+    if current_task_id != requested_task_id:
+        if requested_task_id not in TASKS:
+            raise HTTPException(status_code=404, detail=f"Task {requested_task_id} not found")
+        env.reset(task_id=requested_task_id)
+        current_task_id = requested_task_id
+
+    score = Grader.grade(requested_task_id, env)
         
     return {
-        "task_id": current_task_id, 
+        "task_id": requested_task_id, 
         "score": score,
         "is_terminal": env.is_terminal
     }

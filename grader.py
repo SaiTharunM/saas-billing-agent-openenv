@@ -1,5 +1,5 @@
 import math
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 from engine import SaaSSupportEnv
 from models import ActionType, TicketStatus
 
@@ -101,6 +101,16 @@ class Grader:
 
     @staticmethod
     def grade(task_id: str, env: SaaSSupportEnv) -> float:
+        if env is None:
+            env = SaaSSupportEnv()
+
+        current_ticket = getattr(env, "current_ticket", None)
+        if not current_ticket:
+            try:
+                env.reset(task_id=task_id)
+            except Exception:
+                return Grader.normalize(0.01)
+
         grader = TASK_GRADERS.get(task_id)
         if grader is None:
             return Grader.normalize(0.01)
