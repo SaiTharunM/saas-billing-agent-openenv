@@ -58,6 +58,10 @@ export interface Reward {
     is_terminal: boolean;
 }
 
+function clampScore(score: number): number {
+    return Math.max(0.01, Math.min(0.99, Number(score)));
+}
+
 export class CompanyPolicy {
     static REFUND_WINDOW_DAYS = 30;
     static PRO_RATED_REFUND_ALLOWED = true;
@@ -292,7 +296,14 @@ export class SaaSSupportEnv {
             rewardVal += 1.0;
         }
 
-        return [this.getObservation(), { value: rewardVal, reason: infoMsg || "Action processed.", is_terminal: this.isTerminal }];
+        return [
+            this.getObservation(),
+            {
+                value: clampScore(rewardVal),
+                reason: infoMsg || "Action processed.",
+                is_terminal: this.isTerminal
+            }
+        ];
     }
 
     simulateCustomerResponse(agentMsg: string): string {

@@ -229,7 +229,13 @@ async function startServer() {
   });
 
   app.post('/reset', (req, res) => {
-    const taskId = (req.query.task_id as string) || (req.body.task_id as string) || 'task_1';
+    const taskId =
+      (req.query.task_id as string) ||
+      (req.query.task as string) ||
+      (req.body.task_id as string) ||
+      (req.body.task as string) ||
+      (req.body.id as string) ||
+      'task_1';
     const task = (TASKS as any)[taskId];
     if (!task) {
       return res.status(404).json({ detail: `Task ${taskId} not found` });
@@ -258,17 +264,28 @@ async function startServer() {
   });
 
   app.get('/tasks', (req, res) => {
-    res.json(TASKS);
+    res.json(Object.values(TASKS));
   });
 
   app.get('/grader', (req, res) => {
-    if (!currentTaskId) {
+    const requestedTaskId = (req.query.task_id as string) || currentTaskId;
+    if (!requestedTaskId) {
       return res.status(400).json({ detail: 'No active task. Call /reset first.' });
     }
-    const score = Grader.grade(currentTaskId, env);
+
+    if (requestedTaskId !== currentTaskId) {
+      const task = (TASKS as any)[requestedTaskId];
+      if (!task) {
+        return res.status(404).json({ detail: `Task ${requestedTaskId} not found` });
+      }
+      currentTaskId = requestedTaskId;
+      env.reset(task.ticket_id, task.customer_id, task.initial_message, task.difficulty);
+    }
+
+    const score = Grader.grade(requestedTaskId, env);
     
     res.json({
-      task_id: currentTaskId,
+      task_id: requestedTaskId,
       score: score,
       is_terminal: env.isTerminal
     });
