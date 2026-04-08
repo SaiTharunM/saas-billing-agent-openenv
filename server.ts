@@ -235,7 +235,7 @@ async function startServer() {
       return res.status(404).json({ detail: `Task ${taskId} not found` });
     }
     currentTaskId = taskId;
-    const obs = env.reset(task.id, task.customer_id, task.initial_message, task.difficulty);
+    const obs = env.reset(task.ticket_id, task.customer_id, task.initial_message, task.difficulty);
     res.json(obs);
   });
 

@@ -121,7 +121,7 @@ class SaaSSupportEnv:
             from tasks import get_task
 
             task_meta = get_task(resolved_task_id)
-            ticket_id = task_meta["id"]
+            ticket_id = task_meta["ticket_id"]
             customer_id = task_meta["customer_id"]
             initial_message = task_meta["initial_message"]
             difficulty = task_meta["difficulty"]
