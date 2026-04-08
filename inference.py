@@ -11,11 +11,40 @@ API_BASE_URL = os.getenv("API_BASE_URL")
 API_KEY = os.getenv("API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME")
 
-# ✅ ALWAYS initialize client
+# ✅ SAFE CLIENT INIT
 client = OpenAI(
     base_url=API_BASE_URL,
     api_key=API_KEY
 )
+
+
+def safe_score(value):
+    """
+    🔥 FINAL GUARANTEE:
+    Always returns score strictly between (0,1)
+    """
+    try:
+        s = float(value)
+    except:
+        return 0.5
+
+    if s is None:
+        return 0.5
+
+    # Handle NaN / Inf
+    if s != s or s == float("inf") or s == float("-inf"):
+        return 0.5
+
+    # HARD STRICT CLAMP
+    s = max(0.01, min(0.99, s))
+
+    # EXTRA FLOAT SAFETY
+    if s <= 0.0:
+        return 0.01
+    if s >= 1.0:
+        return 0.99
+
+    return s
 
 
 def get_llm_action(observation_json: str) -> Action:
@@ -91,13 +120,15 @@ def run_inference():
                 obs, reward = env.step(action)
                 done = reward.is_terminal
 
-                print(f"[STEP] step: {step_count}, action: {action.action_type.value}, reward: {reward.value}, done: {done}")
+                print(
+                    f"[STEP] step: {step_count}, action: {action.action_type.value}, reward: {reward.value}, done: {done}"
+                )
 
             except Exception as e:
                 print(f"[ERROR] Step failed: {e}")
                 break
 
-        # ✅ ULTRA SAFE GRADING (FINAL FIX)
+        # ✅ FINAL SCORING (ULTRA SAFE)
         try:
             if task_id == "task_1":
                 raw_score = Grader.grade_task_1(env)
@@ -108,27 +139,7 @@ def run_inference():
             else:
                 raw_score = 0.5
 
-            # ✅ Convert safely to float
-            try:
-                score = float(raw_score)
-            except:
-                score = 0.5
-
-            # ✅ Handle invalid values
-            if score is None:
-                score = 0.5
-
-            # ✅ STRICT clamp (never 0 or 1)
-            if score <= 0.0:
-                score = 0.01
-            elif score >= 1.0:
-                score = 0.99
-
-            # ✅ Extra safety
-            if score == 0.0:
-                score = 0.01
-            if score == 1.0:
-                score = 0.99
+            score = safe_score(raw_score)
 
         except Exception as e:
             print(f"[ERROR] Grading failed: {e}")
