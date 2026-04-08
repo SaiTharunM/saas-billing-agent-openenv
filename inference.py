@@ -18,33 +18,40 @@ client = OpenAI(
 )
 
 
+# ✅ STRICT SAFE SCORE (0 < score < 1)
 def safe_score(value):
-    """
-    🔥 FINAL GUARANTEE:
-    Always returns score strictly between (0,1)
-    """
     try:
         s = float(value)
     except:
         return 0.5
 
-    if s is None:
+    if s is None or s != s:
         return 0.5
 
-    # Handle NaN / Inf
-    if s != s or s == float("inf") or s == float("-inf"):
-        return 0.5
-
-    # HARD STRICT CLAMP
-    s = max(0.01, min(0.99, s))
-
-    # EXTRA FLOAT SAFETY
     if s <= 0.0:
         return 0.01
     if s >= 1.0:
         return 0.99
 
     return s
+
+
+# ✅ STRICT SAFE REWARD (0 < reward < 1)
+def safe_reward(value):
+    try:
+        r = float(value)
+    except:
+        return 0.5
+
+    if r is None or r != r:
+        return 0.5
+
+    if r <= 0.0:
+        return 0.01
+    if r >= 1.0:
+        return 0.99
+
+    return r
 
 
 def get_llm_action(observation_json: str) -> Action:
@@ -120,15 +127,18 @@ def run_inference():
                 obs, reward = env.step(action)
                 done = reward.is_terminal
 
+                # ✅ FIX: SAFE REWARD PRINT
+                safe_r = safe_reward(reward.value)
+
                 print(
-                    f"[STEP] step: {step_count}, action: {action.action_type.value}, reward: {reward.value}, done: {done}"
+                    f"[STEP] step: {step_count}, action: {action.action_type.value}, reward: {safe_r}, done: {done}"
                 )
 
             except Exception as e:
                 print(f"[ERROR] Step failed: {e}")
                 break
 
-        # ✅ FINAL SCORING (ULTRA SAFE)
+        # ✅ FINAL SAFE SCORE
         try:
             if task_id == "task_1":
                 raw_score = Grader.grade_task_1(env)
