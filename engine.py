@@ -6,6 +6,11 @@ from models import (
     ChatMessage, CustomerInfo, Observation, Action, Reward
 )
 
+
+def clamp_score(score: float) -> float:
+    """Return a score strictly inside the validator-safe interval."""
+    return float(max(0.01, min(0.99, float(score))))
+
 class CompanyPolicy:
     """
     The 'Bible' of rules the agent must follow.
@@ -278,8 +283,7 @@ class SaaSSupportEnv:
         except (TypeError, ValueError):
             return 0.5
 
-        if reward <= 0.0:
-            return 0.01
-        if reward >= 1.0:
-            return 0.99
-        return reward
+        if reward != reward:
+            return 0.5
+
+        return clamp_score(reward)

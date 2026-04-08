@@ -1,26 +1,27 @@
 import math
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict
+
 from engine import SaaSSupportEnv
 from models import ActionType, TicketStatus
 
-class Grader:
 
+def clamp_score(score: float) -> float:
+    """Return a score strictly inside the validator-safe interval."""
+    return float(max(0.01, min(0.99, float(score))))
+
+
+class Grader:
     @staticmethod
     def normalize(score: Any) -> float:
         try:
-            s = float(score)
+            value = float(score)
         except (TypeError, ValueError):
             return 0.5
 
-        if s is None or math.isnan(s):
+        if value is None or math.isnan(value):
             return 0.5
 
-        if s <= 0.0:
-            return 0.01
-        if s >= 1.0:
-            return 0.99
-
-        return s
+        return clamp_score(value)
 
     @staticmethod
     def grade_task_1(env: SaaSSupportEnv) -> float:
@@ -36,20 +37,18 @@ class Grader:
             "Security: Please verify" in getattr(msg, "content", "")
             for msg in history
         )
-
         updated = customer_email == "alice_new@example.com"
         resolved = current_ticket.get("status") == TicketStatus.RESOLVED
 
         if updated and resolved:
-            return Grader.normalize(0.99)   # ❌ NOT 1.0
+            return clamp_score(0.99)
         if verified:
-            return Grader.normalize(0.5)
-        return Grader.normalize(0.01)       # ❌ NOT 0.0
+            return clamp_score(0.5)
+        return clamp_score(0.01)
 
     @staticmethod
     def grade_task_2(env: SaaSSupportEnv) -> float:
         history = getattr(env, "action_history", []) or []
-
         looked_up = any(a.action_type == ActionType.LOOKUP_BILLING for a in history)
 
         correct_refund = False
@@ -62,8 +61,8 @@ class Grader:
 
                 try:
                     amount = float(payload.get("amount", 0))
-                except:
-                    amount = 0
+                except (TypeError, ValueError):
+                    amount = 0.0
 
                 if (
                     payload.get("invoice_id") == "inv_101"
@@ -72,13 +71,12 @@ class Grader:
                     correct_refund = True
 
         if correct_refund:
-            return Grader.normalize(0.99)
+            return clamp_score(0.99)
         if any_refund:
-            return Grader.normalize(0.5)
+            return clamp_score(0.5)
         if looked_up:
-            return Grader.normalize(0.2)
-
-        return Grader.normalize(0.01)
+            return clamp_score(0.2)
+        return clamp_score(0.01)
 
     @staticmethod
     def grade_task_3(env: SaaSSupportEnv) -> float:
@@ -87,17 +85,15 @@ class Grader:
         loyalty_offered = any(
             a.action_type == ActionType.OFFER_LOYALTY_DISCOUNT for a in history
         )
-
         refund_issued = any(
             a.action_type == ActionType.TRIGGER_REFUND for a in history
         )
 
         if loyalty_offered and not refund_issued:
-            return Grader.normalize(0.99)
+            return clamp_score(0.99)
         if loyalty_offered and refund_issued:
-            return Grader.normalize(0.5)
-
-        return Grader.normalize(0.01)
+            return clamp_score(0.5)
+        return clamp_score(0.01)
 
     @staticmethod
     def grade(task_id: str, env: SaaSSupportEnv) -> float:
@@ -109,12 +105,16 @@ class Grader:
             try:
                 env.reset(task_id=task_id)
             except Exception:
-                return Grader.normalize(0.01)
+                return clamp_score(0.01)
 
         grader = TASK_GRADERS.get(task_id)
         if grader is None:
-            return Grader.normalize(0.01)
-        return Grader.normalize(grader(env))
+            return clamp_score(0.01)
+
+        try:
+            return float(clamp_score(float(grader(env))))
+        except Exception:
+            return clamp_score(0.01)
 
 
 TASK_GRADERS: Dict[str, Callable[[SaaSSupportEnv], float]] = {
