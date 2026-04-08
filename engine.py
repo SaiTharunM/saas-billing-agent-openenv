@@ -241,7 +241,11 @@ class SaaSSupportEnv:
         if self.is_terminal and success:
             reward_val += 1.0 # Full success bonus
 
-        return self._get_observation(), Reward(value=reward_val, reason=info_msg or "Action processed.", is_terminal=self.is_terminal)
+        return self._get_observation(), Reward(
+            value=self._normalize_reward(reward_val),
+            reason=info_msg or "Action processed.",
+            is_terminal=self.is_terminal,
+        )
 
     def _simulate_customer_response(self, agent_msg: str) -> str:
         """Internal method to simulate customer responses based on difficulty."""
@@ -265,3 +269,17 @@ class SaaSSupportEnv:
             "steps": self.steps_taken,
             "terminal": self.is_terminal
         }
+
+    @staticmethod
+    def _normalize_reward(value: Union[int, float]) -> float:
+        """Clamps rewards into the strict validator range."""
+        try:
+            reward = float(value)
+        except (TypeError, ValueError):
+            return 0.5
+
+        if reward <= 0.0:
+            return 0.01
+        if reward >= 1.0:
+            return 0.99
+        return reward
