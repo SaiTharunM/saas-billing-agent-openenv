@@ -265,10 +265,7 @@ async function startServer() {
     if (!currentTaskId) {
       return res.status(400).json({ detail: 'No active task. Call /reset first.' });
     }
-    let score = 0.01;
-    if (currentTaskId === 'task_1') score = Grader.grade_task_1(env);
-    else if (currentTaskId === 'task_2') score = Grader.grade_task_2(env);
-    else if (currentTaskId === 'task_3') score = Grader.grade_task_3(env);
+    const score = Grader.grade(currentTaskId, env);
     
     res.json({
       task_id: currentTaskId,

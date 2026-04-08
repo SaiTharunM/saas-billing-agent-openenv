@@ -45,14 +45,17 @@ is_terminal: true
 
 tasks:
   - id: "task_1"
+    grader: "grade_task_1"
     name: "Easy: Email Update"
     description: "Update the customer's email address after verification."
     difficulty: "easy"
   - id: "task_2"
+    grader: "grade_task_2"
     name: "Medium: Pro-rated Refund"
     description: "Calculate and issue a pro-rated refund for a mid-cycle cancellation."
     difficulty: "medium"
   - id: "task_3"
+    grader: "grade_task_3"
     name: "Hard: Retention & Escalation"
     description: "Retain a high-value Enterprise customer using a loyalty discount."
     difficulty: "hard"

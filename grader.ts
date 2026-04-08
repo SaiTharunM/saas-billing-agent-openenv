@@ -1,27 +1,25 @@
 import { SaaSSupportEnv, ActionType, TicketStatus } from './engine';
 
 export class Grader {
-
-    // ✅ GLOBAL NORMALIZER (CRITICAL FIX)
     static normalizeScore(score: any): number {
-        let s = Number(score);
+        const s = Number(score);
 
-        // Handle NaN / null / undefined
         if (isNaN(s) || s === null || s === undefined) {
             return 0.5;
         }
 
-        // STRICT range (never 0 or 1)
         if (s <= 0) return 0.01;
         if (s >= 1) return 0.99;
-
         return s;
     }
 
     static grade_task_1(env: SaaSSupportEnv): number {
+        const currentTicket = env.currentTicket || { history: [], status: null };
+        const history = currentTicket.history || [];
+
         const verified =
             env.verificationPending ||
-            env.currentTicket.history.some(
+            history.some(
                 (msg: any) =>
                     msg.role === 'system' &&
                     msg.content.includes("Security: Please verify")
@@ -31,19 +29,15 @@ export class Grader {
             env.db.customers["cust_001"].email === "alice_new@example.com";
 
         const resolved =
-            env.currentTicket.status === TicketStatus.RESOLVED;
+            currentTicket.status === TicketStatus.RESOLVED;
 
-        let score;
-
-        if (updated && resolved) score = 1.0;
-        else if (verified) score = 0.5;
-        else score = 0.0;
-
-        return Grader.normalizeScore(score); // ✅ FIX
+        if (updated && resolved) return Grader.normalizeScore(0.99);
+        if (verified) return Grader.normalizeScore(0.5);
+        return Grader.normalizeScore(0.01);
     }
 
     static grade_task_2(env: SaaSSupportEnv): number {
-        const history = env.actionHistory;
+        const history = env.actionHistory || [];
 
         const lookedUp = history.some(
             (a: any) => a.action_type === ActionType.LOOKUP_BILLING
@@ -57,8 +51,8 @@ export class Grader {
                 anyRefund = true;
 
                 const payload = action.payload || {};
-
                 let amount = 0;
+
                 try {
                     amount = parseFloat(payload.amount || "0");
                 } catch {
@@ -74,35 +68,32 @@ export class Grader {
             }
         }
 
-        let score;
-
-        if (correctRefund) score = 1.0;
-        else if (anyRefund) score = 0.5;
-        else if (lookedUp) score = 0.2;
-        else score = 0.0;
-
-        return Grader.normalizeScore(score); // ✅ FIX
+        if (correctRefund) return Grader.normalizeScore(0.99);
+        if (anyRefund) return Grader.normalizeScore(0.5);
+        if (lookedUp) return Grader.normalizeScore(0.2);
+        return Grader.normalizeScore(0.01);
     }
 
     static grade_task_3(env: SaaSSupportEnv): number {
-        const history = env.actionHistory;
+        const history = env.actionHistory || [];
 
         const loyaltyOffered = history.some(
-            (a: any) =>
-                a.action_type === ActionType.OFFER_LOYALTY_DISCOUNT
+            (a: any) => a.action_type === ActionType.OFFER_LOYALTY_DISCOUNT
         );
 
         const refundIssued = history.some(
-            (a: any) =>
-                a.action_type === ActionType.TRIGGER_REFUND
+            (a: any) => a.action_type === ActionType.TRIGGER_REFUND
         );
 
-        let score;
+        if (loyaltyOffered && !refundIssued) return Grader.normalizeScore(0.99);
+        if (loyaltyOffered && refundIssued) return Grader.normalizeScore(0.5);
+        return Grader.normalizeScore(0.01);
+    }
 
-        if (loyaltyOffered && !refundIssued) score = 1.0;
-        else if (loyaltyOffered && refundIssued) score = 0.5;
-        else score = 0.0;
-
-        return Grader.normalizeScore(score); // ✅ FIX
+    static grade(taskId: string, env: SaaSSupportEnv): number {
+        if (taskId === "task_1") return Grader.normalizeScore(Grader.grade_task_1(env));
+        if (taskId === "task_2") return Grader.normalizeScore(Grader.grade_task_2(env));
+        if (taskId === "task_3") return Grader.normalizeScore(Grader.grade_task_3(env));
+        return Grader.normalizeScore(0.01);
     }
 }
