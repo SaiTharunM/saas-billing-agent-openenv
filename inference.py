@@ -10,7 +10,7 @@ from grader import Grader
 from tasks import TASKS, TASK_IDS
 
 API_BASE_URL = os.getenv("API_BASE_URL")
-API_KEY = os.getenv("API_KEY")
+API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
 client: Optional[OpenAI] = None
@@ -114,8 +114,7 @@ def get_llm_action(observation_json: str) -> Action:
 
         action_data = json.loads(response.choices[0].message.content)
         return Action(**action_data)
-    except Exception as exc:
-        print(f"[WARNING] LLM failed, using fallback: {exc}")
+    except Exception:
         return build_fallback_action(observation_json)
 
 
@@ -134,9 +133,8 @@ def warmup_proxy_call() -> None:
             max_tokens=16,
             timeout=10,
         )
-        print("[INFO] LiteLLM proxy warmup call succeeded.")
-    except Exception as exc:
-        print(f"[WARNING] LiteLLM proxy warmup failed: {exc}")
+    except Exception:
+        return
 
 
 def run_inference():
@@ -193,10 +191,7 @@ def run_inference():
 
 if __name__ == "__main__":
     try:
-        if not all([API_BASE_URL, API_KEY]):
-            print("[WARNING] Missing environment variables; using deterministic fallback actions.")
-
         run_inference()
     except Exception as exc:
-        print(f"[FATAL] Unexpected error: {exc}")
+        print(f"[ERROR] Unexpected error: {exc}", file=sys.stderr)
         sys.exit(0)

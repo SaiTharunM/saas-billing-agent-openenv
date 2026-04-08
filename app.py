@@ -14,7 +14,7 @@ from tasks import TASKS, list_tasks
 from grader import Grader
 
 API_BASE_URL = os.getenv("API_BASE_URL")
-API_KEY = os.getenv("API_KEY")
+API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 
 
@@ -34,9 +34,8 @@ def ping_llm_proxy() -> None:
             max_tokens=16,
             timeout=10,
         )
-        print("LiteLLM proxy startup ping succeeded.")
-    except Exception as exc:
-        print(f"LiteLLM proxy startup ping failed: {exc}")
+    except Exception:
+        return
 
 
 @asynccontextmanager
