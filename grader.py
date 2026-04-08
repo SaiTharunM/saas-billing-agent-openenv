@@ -1,4 +1,5 @@
-from typing import Any
+import math
+from typing import Any, Callable, Dict
 from engine import SaaSSupportEnv
 from models import ActionType, TicketStatus
 
@@ -8,13 +9,12 @@ class Grader:
     def normalize(score: Any) -> float:
         try:
             s = float(score)
-        except:
+        except (TypeError, ValueError):
             return 0.5
 
-        if s is None:
+        if s is None or math.isnan(s):
             return 0.5
 
-        # STRICT RANGE
         if s <= 0.0:
             return 0.01
         if s >= 1.0:
@@ -90,3 +90,17 @@ class Grader:
             return Grader.normalize(0.5)
 
         return Grader.normalize(0.01)
+
+    @staticmethod
+    def grade(task_id: str, env: SaaSSupportEnv) -> float:
+        grader = TASK_GRADERS.get(task_id)
+        if grader is None:
+            return Grader.normalize(0.01)
+        return Grader.normalize(grader(env))
+
+
+TASK_GRADERS: Dict[str, Callable[[SaaSSupportEnv], float]] = {
+    "task_1": Grader.grade_task_1,
+    "task_2": Grader.grade_task_2,
+    "task_3": Grader.grade_task_3,
+}

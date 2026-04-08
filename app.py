@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError, BaseModel
 from engine import SaaSSupportEnv
 from models import Action
-from tasks import TASKS
+from tasks import TASKS, list_tasks
 from grader import Grader
 
 
@@ -291,13 +291,7 @@ async def reset(request: Request, task_id: str = None):
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
     
     current_task_id = task_id
-    task = TASKS[task_id]
-    obs = env.reset(
-        ticket_id=task["id"], 
-        customer_id=task["customer_id"], 
-        initial_message=task["initial_message"],
-        difficulty=task["difficulty"]
-    )
+    obs = env.reset(task_id=task_id)
     return obs
 
 @app.post("/step")
@@ -322,7 +316,7 @@ async def get_state():
 @app.get("/tasks")
 async def get_tasks():
     """Returns the list of available tasks as a JSON list."""
-    return list(TASKS.values())
+    return list_tasks()
 
 @app.get("/grader")
 async def get_grader():
@@ -330,14 +324,7 @@ async def get_grader():
     if current_task_id is None:
         raise HTTPException(status_code=400, detail="No active task. Call /reset first.")
     
-    if current_task_id == "task_1":
-        score = Grader.grade_task_1(env)
-    elif current_task_id == "task_2":
-        score = Grader.grade_task_2(env)
-    elif current_task_id == "task_3":
-        score = Grader.grade_task_3(env)
-    else:
-        score = 0.0
+    score = Grader.grade(current_task_id, env)
         
     return {
         "task_id": current_task_id, 

@@ -106,8 +106,31 @@ class SaaSSupportEnv:
         self.task_difficulty = "easy"
         self.verification_pending = False
 
-    def reset(self, ticket_id: str, customer_id: str, initial_message: str, difficulty: str = "easy") -> Observation:
-        """Resets the environment for a new task."""
+    def reset(
+        self,
+        ticket_id: Optional[str] = None,
+        customer_id: Optional[str] = None,
+        initial_message: Optional[str] = None,
+        difficulty: str = "easy",
+        task: Optional[str] = None,
+        task_id: Optional[str] = None,
+    ) -> Observation:
+        """Resets the environment for a new task or a registered task id."""
+        resolved_task_id = task_id or task
+        if resolved_task_id is not None:
+            from tasks import get_task
+
+            task_meta = get_task(resolved_task_id)
+            ticket_id = task_meta["id"]
+            customer_id = task_meta["customer_id"]
+            initial_message = task_meta["initial_message"]
+            difficulty = task_meta["difficulty"]
+
+        if not all([ticket_id, customer_id, initial_message]):
+            raise ValueError(
+                "reset() requires either task/task_id or ticket_id, customer_id, and initial_message."
+            )
+
         self.current_customer_id = customer_id
         self.task_difficulty = difficulty
         self.current_ticket = {
